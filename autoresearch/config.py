@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -86,6 +86,7 @@ def load_config(config_path: Optional[str] = None, overrides: Optional[Dict[str,
         "batch_size": os.environ.get("AUTORESEARCH_BATCH_SIZE"),
         "parallelism": os.environ.get("AUTORESEARCH_PARALLELISM"),
         "random_seed": os.environ.get("AUTORESEARCH_RANDOM_SEED"),
+        "max_retries": os.environ.get("AUTORESEARCH_MAX_RETRIES"),
         "split_train_ratio": os.environ.get("AUTORESEARCH_TRAIN_RATIO"),
         "split_dev_ratio": os.environ.get("AUTORESEARCH_DEV_RATIO"),
         "split_test_ratio": os.environ.get("AUTORESEARCH_TEST_RATIO"),
@@ -101,7 +102,7 @@ def load_config(config_path: Optional[str] = None, overrides: Optional[Dict[str,
             values[key] = raw
         elif key == "retry_temperatures":
             values[key] = list(_to_float_tuple(raw))
-        elif key in {"batch_size", "parallelism", "random_seed", "history_last_n"}:
+        elif key in {"batch_size", "parallelism", "random_seed", "history_last_n", "max_retries"}:
             values[key] = int(raw)
         else:
             values[key] = float(raw)

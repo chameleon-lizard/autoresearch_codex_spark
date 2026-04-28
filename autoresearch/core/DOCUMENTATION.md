@@ -5,18 +5,18 @@
 
 ## Dataset
 `load_ground_truth_dataset()` reads JSONL lines with keys `{id,text,label}`.
-If the file is absent, it creates a deterministic synthetic 200-row fallback.
+If the file is absent, it creates a deterministic synthetic fallback (seeded).
 
 ## Splitter
-`split_dataset()` performs deterministic stratified splitting by label.
+`split_dataset()` performs deterministic stratified split by label using a seeded random instance.
 
 ## Metrics
 `core/metrics.py` provides:
 - Cohen kappa
 - macro-F1
-- Spearman correlation between labels and prediction probabilities
+- Spearman rank correlation
 
 ## Hash and log helpers
 - `artifact_hash()` uses deterministic canonical JSON serialisation.
-- `append_jsonl_line()` adds one experiment line at a time.
-- `ExperimentStore` keeps append-only operations and robust readback.
+- `append_jsonl_line()` is line-flushed + `fsync` for append-only log writes.
+- `ExperimentStore` provides resilient read and append semantics.

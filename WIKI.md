@@ -1,40 +1,46 @@
 # Autoresearch Project Wiki
 
 ## Purpose
-This repository implements a deterministic, resumable LLM-style autoresearch loop, with clear auditability and low operational risk:
-- deterministic scoring cache
-- append-only experiment log
-- batch proposal scoring
-- safe reset/report/replay flow
+This repository implements the task-agnostic autoresearch loop from `DesignDoc.md`, including:
+- deterministic and cached scoring,
+- append-only experiment history,
+- batch proposal / selection,
+- crash-safe resumability,
+- full operational observability.
 
 ## Runtime components
-- `autoresearch/config.py`: central runtime configuration and env overrides.
-- `autoresearch/core/*`: dataset, split, metrics, state handling.
-- `autoresearch/scorer/*`: scoring engine and per-artifact cache.
-- `autoresearch/stages/*`: A/B/C/M refiner logic.
-- `autoresearch/runner.py`: the control loop.
-- `autoresearch/cli.py`: user-facing command interface.
+- `autoresearch/config.py`: central runtime configuration and environment overrides.
+- `autoresearch/core/*`: dataset loading, split, metrics, state paths, and log store.
+- `autoresearch/scorer/*`: scoring engine and cache.
+- `autoresearch/stages/*`: Stage A (diagnosis), Stage B (proposal + parsing/retry), Stage C (selection), Stage M (merge).
+- `autoresearch/runner.py`: batch control loop and notebook snapshots.
+- `autoresearch/reporter.py`: report regeneration from append-only JSONL.
+- `autoresearch/cli.py`: command surface (`run`, `report`, `reset`, `score`).
 
 ## Data flow
-1. Ground-truth data is loaded and deterministically split train/dev/test.
-2. Initial artifact is scored and logged as iteration 0.
-3. Each batch runs Stage C, A, B, then scoring.
-4. All candidate rows are appended to `state/experiments.jsonl`.
-5. Report file is regenerated from the log.
+1. Load dataset and stratified train/dev/test split.
+2. Score bootstrap artifact (`iter=0`) and append to `state/experiments.jsonl`.
+3. Per batch:
+   - Stage C picks next parent / merge candidate.
+   - Stage A renders disagreement summary from parent train errors.
+   - Runner builds compact/full history context.
+   - Stage B proposes up to `K` single-edit siblings and validates candidate serialization with retry.
+   - All non-duplicate candidates score in parallel.
+   - Candidate rows are appended to the log in one batch with `batch_id` and `is_parent_next` marking.
+4. Regenerate report and write batch note snapshots.
 
-## Persistence and audit
-- Logs are immutable JSONL; earlier rows are never rewritten.
-- Each row stores artifact, parent signal, plan ID, metrics, and error traces.
-- Cache by hash avoids recompute.
+## Invariants
+- Artifact hash = `sha256(serialise(artifact))[:16]`.
+- Scores are cached under `state/cache/<hash>/result.json`.
+- Iteration log is strictly append-only JSONL.
+- Parent selection can request merge mode during plateaus.
 
-## Current status (as implemented)
-- Core loop, CLI, scoring, reporting, and docs are present.
-- Parallel candidate scoring and cache hits are functional.
-- Notebook integration exists via `state/notes.md` snapshots before/after each batch.
-- Merge mode is available but may be conservative depending on recent plateaus.
+## Observability
+- per-batch diagnostics are under `state/batches/<batch>/notes_before.md`, `notes_after.md`.
+- Stage-B parse failures are written as `stage_b_attempt_<n>.txt` with parse metadata.
+- Current state marker at `state/loop.lock` while running.
+- Report is regenerated after each batch at `state/experiments_report.md`.
 
-## Planned follow-ups
-- Replace synthetic scorer with actual external judge/LLM subprocess backend.
-- Add explicit parser-retry diagnostics for malformed proposal attempts.
-- Add structured unit tests for splitter, scorer cache, and selector.
-- Add optional web dashboard for report rendering.
+## Completion status
+- All DesignDoc behaviors are represented in code, including retry/reasoning handling, attempt diagnostics, and merge/replay semantics.
+- External LLM/judge wrappers are intentionally mocked by deterministic, cacheable local heuristics in this repository implementation.
