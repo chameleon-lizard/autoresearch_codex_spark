@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+autoresearch_loop.egg-info/
+state/
+!.state/

@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoresearch-loop"
+version = "0.1.0"
+description = "Autoresearch loop implementation inspired by task-agnostic design doc"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0"]
+authors = [{name = "AutoResearch Team"}]
+
+[project.scripts]
+loop = "autoresearch.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
